@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tensorflow.js linear regression</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+</head>
+<body>
+    <script>
+
+    async function plot(pointsArray, featureName){
+        tfvis.render.scatterplot(
+            {name: `${featureName} vs House Price`},
+            {values: [pointsArray], series: ["original"]},
+            {
+                xLabel: featureName,
+                YLabel: "Price",
+            }
+        );
+    }
+    //min-max normalization function
+     function normalize(tensor) {
+         const min = tensor.min();
+         const max = tensor.max();
+         const normalizedTensor = tensor.sub(min).div(max.sub(min));
+         return {
+             tensor: normalizedTensor,
+             min,
+             max,
+            };
+     }
+
+     //denormalize (more understandable output)
+     function denormalize(tensor, min, max){
+         const denormalizedTensor = tensor.mul(max.sub(min)).add(min);
+         return denormalizedTensor;
+     }
+
+    //READING DATA FROM CSV **note: ran in async funtion to away promise.
+    async function run() {
+        //use tf to open csv file via url
+        const houseSalesDataset = tf.data.csv("yourServerAddress/kc_house_data.csv")
+        //how many to lines to take from csv file
+        const sampleDataset = houseSalesDataset.take(10);
+        //convert into Array and log in console.
+        const dataArray = await sampleDataset.toArray();
+        console.log(dataArray);
+
+        const points = houseSalesDataset.map(record =>({
+            x: record.sqft_living,
+            y: record.price,
+        }));
+        plot(await points.toArray(), "Square feet")
+
+        //features (input)
+        const featureValues = await points.map(p => p.x).toArray();
+        const featureTensor = tf.tensor2d(featureValues, [featureValues.length, 1]);
+
+        //Labels(Outputs)
+        const labelValues = await points.map(p => p.y).toArray();
+        const labelTensor = tf.tensor2d(labelValues, [labelValues.length, 1]);
+
+        featureTensor.print();
+        labelTensor.print();
+
+        //Normalize tensors
+        const normalizedFeature = normalize(featureTensor);
+        const normalizedLabel = normalize(featureTensor);
+
+        normalizedFeature.tensor.print();
+        normalizedLabel.tensor.print();
+
+        denormalize(normalizedFeature.tensor, normalizedFeature.min, normalizedFeature.max).print();
+        
+    }
+    run()
+    </script>
+</body>
+</html>
